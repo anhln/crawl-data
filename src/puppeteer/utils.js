@@ -51,19 +51,15 @@ export const getPosions = async (page) => {
 export const getPosions1 = async (page) => {
   const subContainer = await page.$(".erpl_meps-status-list");
   // const handles = await subContainer.$$eval(".erpl_meps-status",
-  const text = await subContainer.evaluate(() =>
-    Array.from(document.querySelectorAll(".erpl_meps-status"), (element) =>
-      // getText(element)
-      {
-        const title = document.querySelectorAll(".erpl_title-h4");
-        return title.textContent;
-      }
-    )
-  );
+  const elements = await subContainer.$$(".erpl_meps-status");
 
-  console.log(text[0]);
-  console.log(text[1]);
-  console.log(text[2]);
+  // Loop through the elements and extract desired information
+  for (const element of elements) {
+    const textH4 = await element.$(".erpl_title-h4");
+    const text = await (await textH4.getProperty("textContent")).jsonValue();
+    // const text = await page.evaluate((el) => el.textContent, element);
+    console.log(text);
+  }
 };
 
 const getText = (element) => {
