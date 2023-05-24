@@ -2,9 +2,14 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 const puppeteer = require("puppeteer");
-import { getLinks, generateRegExp, getPosions, getPosions1 } from "./utils.js";
+import {
+  getLinks,
+  generateRegExp,
+  getActivities,
+  getPosions,
+  getGeneralInfoOfPerson,
+} from "./utils.js";
 
-// const input = JSON.parse(process.argv[2]);
 const input = {
   url: "https://google.com",
   search:
@@ -18,6 +23,7 @@ const options = {
     "--no-sandbox",
     "--enable-features=NetworkService",
     "--ignore-certificate-errors",
+    "--proxy-server=geo-dc.floppydata.com:10080",
   ],
 };
 
@@ -91,74 +97,130 @@ export const runPuppeteer = async () => {
   }
 };
 
+const delay = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 //** open target url, then return page */
 export const crawlData = async (targetUrl) => {
   const browser = await puppeteer.launch({ ...options });
   const page = await browser.newPage();
-  await page.goto(targetUrl);
-  // await page.waitForNavigation();
-  // const container = await page.evaluate(() => {
-  //   const presentation = document.evaluate(
-  //     "//div[@id='presentationmep']",
-  //     document,
-  //     null,
-  //     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-  //     null
-  //   );
-  //   const hrefs = [];
-  //   for (let i = 0; i < presentation.snapshotLength; i++) {
-  //     const link = presentation.snapshotItem(i);
-  //     hrefs.push(link.href);
-  //   }
 
-  //   return hrefs;
+  await page.authenticate({
+    username: "IZwzYOpNDYFVzrlI",
+    password: "GpNt6ipE87hJPjoH",
+  });
+
+  await page.goto(targetUrl, { timeout: 10000, waitUntil: "load" });
+
+  // await page.waitForSelector("#presentationmep", {
+  //   visible: true,
   // });
-  const linkHome = await page.url();
+  // console.log("befor");
+  await delay(1000);
+  // console.log("after crawl");
+
+  const linkHome = page.url();
+  console.log(linkHome);
   const container = await page.$("#presentationmep");
-  const name = await container.$(".sln-member-name");
-  const text = await (await name.getProperty("textContent")).jsonValue();
-  console.log("Text is: " + text);
+  const nameTag = await container.$(".sln-member-name");
+  const name = await (await nameTag.getProperty("textContent")).jsonValue();
+
+  const statusTag = await container.$(".sln-political-group-role");
+  const status = statusTag
+    ? await (await nameTag.getProperty("textContent")).jsonValue()
+    : "";
+
+  const partyTag = await container.$("div.erpl_title-h3");
+  const party = partyTag
+    ? await (await partyTag.getProperty("textContent")).jsonValue()
+    : "";
 
   const emailHref = await container.$(".link_email");
-  const email = await (await emailHref.getProperty("href")).jsonValue();
+  const email = emailHref
+    ? await (await emailHref.getProperty("href")).jsonValue()
+    : "";
   const emailAddress = email ? email.split(":")[1] : "";
-  console.log("EMAIL is: " + emailAddress);
 
   const fbHref = await container.$(".link_fb");
-  const fb = await (await fbHref.getProperty("href")).jsonValue();
-  console.log("FB is: " + fb);
+  const fb = fbHref ? await (await fbHref.getProperty("href")).jsonValue() : "";
 
-  const twitHref = await container.$(".link_fb");
-  const twitt = await (await twitHref.getProperty("href")).jsonValue();
-  console.log("twitt is: " + twitt);
+  const twitHref = await container.$(".link_twitt");
+  const twitt = twitHref
+    ? await (await twitHref.getProperty("href")).jsonValue()
+    : "";
 
-  const instagramHref = await container.$(".link_fb");
-  const instagram = await (await instagramHref.getProperty("href")).jsonValue();
-  console.log("instagram is: " + instagram);
+  const instagramHref = await container.$(".link_instagram");
+  const instagram = instagramHref
+    ? await (await instagramHref.getProperty("href")).jsonValue()
+    : "";
 
-  const websiteHref = await container.$(".link_fb");
-  const website = await (await websiteHref.getProperty("href")).jsonValue();
-  console.log("website is: " + website);
+  const websiteHref = await container.$(".link_website");
+  const website = websiteHref
+    ? await (await websiteHref.getProperty("href")).jsonValue()
+    : "";
+
+  const youtubeHref = await container.$(".link_youtube");
+  const youtube = youtubeHref
+    ? await (await youtubeHref.getProperty("href")).jsonValue()
+    : "";
+
+  const linkedinHref = await container.$(".link_linkedin");
+  const linkedin = linkedinHref
+    ? await (await linkedinHref.getProperty("href")).jsonValue()
+    : "";
 
   const birthDate = await container.$(".sln-birth-date");
-  const birthDateText = await (
-    await birthDate.getProperty("textContent")
-  ).jsonValue();
-  console.log("birthDateText is: " + birthDateText ? birthDateText.trim() : "");
-  // sln-birth-place
+  const birthDateText = birthDate
+    ? await (await birthDate.getProperty("textContent")).jsonValue()
+    : "";
 
   const birthPlace = await container.$(".sln-birth-place");
-  const birthPlaceText = await (
-    await birthPlace.getProperty("textContent")
-  ).jsonValue();
-  console.log(
-    "birthPlaceText is: " + birthPlaceText ? birthPlaceText.trim() : ""
-  );
+  const birthPlaceText = birthPlace
+    ? await (await birthPlace.getProperty("textContent")).jsonValue()
+    : "";
 
-  const position = await getPosions1(page);
+  const positions = await getPosions(page);
+  const activities = await getActivities(page);
+  // const generalData = await getGeneralInfoOfPerson(page);
 
-  new Promise((r) => setTimeout(r, 4000));
+  // const personalProfile = {
+  //   Name: generalData.Name,
+  //   Status: generalData.Status,
+  //   Party: generalData.Party,
+  //   Email: generalData.Email,
+  //   Facebook: generalData.Facebook,
+  //   Twitter: generalData.Twitter,
+  //   Instagram: generalData.Instagram,
+  //   Website: generalData.Website,
+  //   Youtube: generalData.Youtube,
+  //   LinkedIn: generalData.LinkedIn,
+  //   birthDate: generalData.birthDate,
+  //   birthPlace: generalData.birthPlace,
+  //   positions: positions,
+  //   activities: activities,
+  //   Link: generalData.Link,
+  // };
 
-  // await page.close();
-  // await browser.close();
+  const personalProfile = {
+    Name: name,
+    Status: status,
+    Party: party,
+    Email: emailAddress,
+    FaceboPk: fb,
+    Twitter: twitt,
+    Instagra: instagram,
+    Website: website,
+    Youtube: youtube,
+    LinkedIn: linkedin,
+    birthDate: birthDateText,
+    birthPlace: birthPlaceText,
+    positions: positions,
+    activities: activities,
+    Link: linkHome,
+  };
+
+  await page.close();
+  await browser.close();
+
+  return personalProfile;
 };
